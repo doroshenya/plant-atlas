@@ -5,34 +5,137 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>WebAR-атлас растений</title>
 
-  <!-- Подключаем библиотеку model-viewer -->
+  <!-- Библиотека model-viewer от Google -->
   <script type="module"
     src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
 
   <style>
-    body { margin: 0; background: #0e1a12; color: #fff; font-family: sans-serif; }
-    model-viewer { width: 100vw; height: 80vh; background: #0e1a12; }
-    h1 { text-align: center; font-size: 1.2rem; padding: 12px; }
+    body {
+      margin: 0;
+      background: #0e1a12;
+      color: #fff;
+      font-family: system-ui, sans-serif;
+    }
+    h1 {
+      text-align: center;
+      font-size: 1.1rem;
+      padding: 12px;
+      margin: 0;
+      background: #14281c;
+    }
+    /* Кнопки переключения растений */
+    #plant-list {
+      display: flex;
+      gap: 8px;
+      padding: 10px;
+      overflow-x: auto;
+      background: #14281c;
+    }
+    #plant-list button {
+      padding: 8px 14px;
+      border-radius: 999px;
+      border: 1px solid #2f5c3f;
+      background: transparent;
+      color: #eaf5ee;
+      font-size: 0.9rem;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    #plant-list button.active {
+      background: #4caf50;
+      border-color: #4caf50;
+      color: #04140a;
+      font-weight: 600;
+    }
+    /* 3D-просмотрщик */
+    model-viewer {
+      width: 100%;
+      height: 70vh;
+      background: radial-gradient(circle at 50% 40%, #1d3426, #0e1a12);
+    }
+    #ar-button {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 12px 22px;
+      border-radius: 999px;
+      border: none;
+      background: #4caf50;
+      color: #04140a;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 6px 18px rgba(0,0,0,.4);
+    }
   </style>
 </head>
 <body>
 
-  <h1>🌻 Виртуальный WebAR-атлас растений</h1>
+  <h1>🌿 Виртуальный WebAR-атлас растений</h1>
 
-  <model-viewer
-    src="models/sunflower.glb"
-    ios-src="models/sunflower.usdz"
-    alt="3D-модель подсолнуха"
-    ar
-    ar-modes="webxr scene-viewer quick-look"
-    camera-controls
-    environment-image="hdr/forest.hdr"
-    shadow-intensity="1"
-    exposure="1.0"
-    ar-placement="floor"
-  >
-    <button slot="ar-button">🥽 Поставить на парту</button>
+  <!-- Переключение растений -->
+  <nav id="plant-list">
+    <button data-plant="sunflower" class="active">🌻 Подсолнух</button>
+    <button data-plant="red_rose">🌹 Роза</button>
+    <button data-plant="cactus">🌵 Кактус</button>
+  </nav>
+
+  <!-- Основной компонент -->
+<model-viewer
+  id="viewer"
+  src="models/sunflower/scene.gltf"
+  ios-src="models/Sunflower.usdz"
+  alt="3D-модель растения"
+  ar
+  ar-modes="webxr scene-viewer quick-look"
+  camera-controls
+  environment-image="hdr/bryanston_park_sunrise_1k.hdr"
+  shadow-intensity="1"
+  shadow-softness="0.8"
+  exposure="1.0"
+  ar-placement="floor"
+>
+    <button id="ar-button" slot="ar-button">🥽 Поставить на парту</button>
   </model-viewer>
+
+  <!-- Простая логика переключения -->
+  <script>
+    const viewer = document.querySelector('#viewer');
+    const buttons = document.querySelectorAll('#plant-list button');
+
+    const plants = {
+      sunflower: {
+        gltf: 'models/sunflower/scene.gltf',
+        usdz: 'models/Sunflower.usdz',
+        alt: '3D-модель подсолнуха'
+      },
+      red_rose: {
+        gltf: 'models/red_rose/scene.gltf',
+        usdz: 'models/Red_rose.usdz',
+        alt: '3D-модель розы'
+      },
+      cactus: {
+        gltf: 'models/cactus/scene.gltf',
+        usdz: 'models/Cactus.usdz',
+        alt: '3D-модель кактуса'
+      }
+    };
+
+    buttons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const key = btn.dataset.plant;
+        const p = plants[key];
+        if (!p) return;
+
+        buttons.forEach(b => b.classList.toggle('active', b === btn));
+
+        viewer.setAttribute('src', p.gltf);
+        viewer.setAttribute('ios-src', p.usdz);
+        viewer.setAttribute('alt', p.alt);
+      });
+    });
+  </script>
 
 </body>
 </html>
