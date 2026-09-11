@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>WebAR-атлас растений</title>
+
+  <!-- Подключаем библиотеку model-viewer -->
+  <script type="module"
+    src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+
+  <style>
+    body { margin: 0; background: #0e1a12; color: #fff; font-family: sans-serif; }
+    model-viewer { width: 100vw; height: 80vh; background: #0e1a12; }
+    h1 { text-align: center; font-size: 1.2rem; padding: 12px; }
+  </style>
+</head>
+<body>
+
+  <h1>🌻 Виртуальный WebAR-атлас растений</h1>
+
+  <model-viewer
+    src="models/sunflower.glb"
+    ios-src="models/sunflower.usdz"
+    alt="3D-модель подсолнуха"
+    ar
+    ar-modes="webxr scene-viewer quick-look"
+    camera-controls
+    environment-image="hdr/forest.hdr"
+    shadow-intensity="1"
+    exposure="1.0"
+    ar-placement="floor"
+  >
+    <button slot="ar-button">🥽 Поставить на парту</button>
+  </model-viewer>
+
+</body>
+</html>
