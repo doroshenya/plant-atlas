@@ -4,34 +4,40 @@
   <meta charset="UTF-8" />
   <meta name="viewport"
     content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-  <title>WebAR-атлас: трекинг маркера</title>
+  <title>WebAR-атлас растений: трекинг</title>
 
-  <!-- A-Frame -->
   <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
-
-  <!-- MindAR для A-Frame -->
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
 
   <style>
     body { margin: 0; overflow: hidden; background: #000; }
     .ui {
-      position: fixed;
-      bottom: 12px;
-      left: 50%;
-      transform: translateX(-50%);
-      color: #fff;
-      font-family: system-ui, sans-serif;
-      font-size: 14px;
-      background: rgba(0,0,0,.55);
-      padding: 8px 14px;
-      border-radius: 999px;
-      z-index: 10;
+      position: fixed; bottom: 60px; left: 50%; transform: translateX(-50%);
+      color: #fff; font-family: system-ui, sans-serif; font-size: 14px;
+      background: rgba(0,0,0,.55); padding: 8px 14px;
+      border-radius: 999px; z-index: 10;
     }
+    nav {
+      position: fixed; top: 0; left: 0; right: 0;
+      display: flex; gap: 8px; padding: 10px;
+      background: rgba(20,40,28,.85); justify-content: center; z-index: 100;
+    }
+    nav a {
+      padding: 8px 14px; border-radius: 999px;
+      color: #eaf5ee; text-decoration: none; font-size: 14px;
+      border: 1px solid #2f5c3f;
+    }
+    nav a.active { background: #4caf50; color: #04140a; font-weight: 600; border-color: #4caf50; }
   </style>
 </head>
 <body>
 
-  <div class="ui">📷 Наведите камеру на картинку-маркер</div>
+  <nav>
+    <a href="index.html">Задание 1: AR-модель</a>
+    <a href="marker.html" class="active">Задание 2: Трекинг</a>
+  </nav>
+
+  <div class="ui">📷 Наведите камеру на картинку растения</div>
 
   <a-scene
     mindar-image="imageTargetSrc: ./targets.mind; autoStart: true; uiLoading: no; uiError: no; uiScanning: no;"
@@ -41,28 +47,30 @@
     device-orientation-permission-ui="enabled: false"
   >
 
-    <!-- Ресурсы: модель подсолнуха -->
     <a-assets>
-      <a-asset-item id="sunflower-model"
-        src="./models/sunflower/scene.gltf"></a-asset-item>
+      <a-asset-item id="sunflower-model" src="./models/sunflower/scene.gltf"></a-asset-item>
+      <a-asset-item id="fern-model"      src="./models/3d_fern_-_01/scene.gltf"></a-asset-item>
+      <a-asset-item id="cactus-model"    src="./models/cactus/scene.gltf"></a-asset-item>
     </a-assets>
 
-    <!-- Камера -->
     <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-    <!-- Освещение -->
     <a-entity light="type: ambient; intensity: 0.7"></a-entity>
     <a-entity light="type: directional; intensity: 0.9; position: 1 2 1"></a-entity>
 
-    <!-- Целевой объект (маркер) -->
+    <!-- Маркер 0: подсолнух -->
     <a-entity mindar-image-target="targetIndex: 0">
-      <!-- Модель, которая появится над маркером -->
-      <a-gltf-model
-        rotation="0 0 0"
-        position="0 0 0"
-        scale="0.005 0.005 0.005"
-        src="#sunflower-model"
-      ></a-gltf-model>
+      <a-gltf-model src="#sunflower-model" scale="0.005 0.005 0.005"></a-gltf-model>
+    </a-entity>
+
+    <!-- Маркер 1: папоротник -->
+    <a-entity mindar-image-target="targetIndex: 1">
+      <a-gltf-model src="#fern-model" scale="0.1 0.1 0.1"></a-gltf-model>
+    </a-entity>
+
+    <!-- Маркер 2: кактус -->
+    <a-entity mindar-image-target="targetIndex: 2">
+      <a-gltf-model src="#cactus-model" scale="0.005 0.005 0.005"></a-gltf-model>
     </a-entity>
 
   </a-scene>
