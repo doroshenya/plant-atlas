@@ -6,6 +6,30 @@
     content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
   <title>WebAR: маска на лицо</title>
 
+  <!-- Перехватываем загрузку MediaPipe: подменяем CDN на локальные файлы -->
+  <script>
+    (function() {
+      const _origFetch = window.fetch;
+      window.fetch = function(url, ...args) {
+        if (typeof url === 'string') {
+          if (url.includes('face_landmarker.task')) {
+            console.log('[patch] face_landmarker.task → локально');
+            url = './mediapipe/face_landmarker.task';
+          }
+          if (url.includes('vision_wasm_internal.wasm')) {
+            console.log('[patch] vision_wasm_internal.wasm → локально');
+            url = './mediapipe/vision_wasm_internal.wasm';
+          }
+          if (url.includes('vision_wasm_internal.js')) {
+            console.log('[patch] vision_wasm_internal.js → локально');
+            url = './mediapipe/vision_wasm_internal.js';
+          }
+        }
+        return _origFetch.call(this, url, ...args);
+      };
+    })();
+  </script>
+
   <!-- A-Frame через jsdelivr -->
   <script src="https://cdn.jsdelivr.net/npm/aframe@1.4.2/dist/aframe-master.min.js"></script>
 
@@ -62,7 +86,6 @@
     <a-entity light="type: ambient; intensity: 0.8"></a-entity>
     <a-entity light="type: directional; intensity: 0.7; position: 0 1 1"></a-entity>
 
-    <!-- anchorIndex: 168 = переносица -->
     <a-entity mindar-face-target="anchorIndex: 168">
       <a-gltf-model
         src="#glasses-model"
