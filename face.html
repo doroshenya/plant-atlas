@@ -46,14 +46,7 @@
   <div class="ui">📷 Наведите камеру на лицо</div>
 
   <a-scene
-    mindar-face="
-      autoStart: true;
-      uiLoading: no;
-      uiError: no;
-      uiScanning: no;
-      faceLandmarkerPath: ./mediapipe/face_landmarker.task;
-      wasmPath: ./mediapipe/;
-    "
+    mindar-face="autoStart: true; uiLoading: no; uiError: yes; uiScanning: yes;"
     color-space="sRGB"
     renderer="colorManagement: true; physicallyCorrectLights: true"
     vr-mode-ui="enabled: false"
@@ -70,7 +63,7 @@
     <a-entity light="type: directional; intensity: 0.7; position: 0 1 1"></a-entity>
 
     <!-- anchorIndex: 168 = переносица -->
-    <a-entity mindar-face-target="anchorIndex: 4">
+    <a-entity mindar-face-target="anchorIndex: 168">
       <a-gltf-model
         src="#glasses-model"
         position="0 -0.1 0"
