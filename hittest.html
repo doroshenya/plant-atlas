@@ -51,10 +51,10 @@
     <a href="hittest.html" class="active">Задание 4: Hit-test</a>
   </nav>
 
-  <div id="info">📱 Наведите на поверхность, коснитесь для размещения</div>
+  <div id="info">Наведите на поверхность, коснитесь для размещения</div>
 
   <button id="ar-button">Запустить AR</button>
-  <button id="reset-button">🔄 Разместить заново</button>
+  <button id="reset-button">Разместить заново</button>
 
   <script type="importmap">
     {
@@ -156,7 +156,7 @@
 
         document.getElementById('ar-button').style.display = 'block';
         resetBtn.style.display = 'none';
-        infoEl.textContent = '📱 Наведите на поверхность, коснитесь для размещения';
+        infoEl.textContent = 'Наведите на поверхность, коснитесь для размещения';
       });
 
       // Анимация
@@ -190,7 +190,7 @@
       reticle.visible = false;
 
       // Обновляем UI
-      infoEl.textContent = '✅ Объект размещён. Обойдите его — он остаётся на месте.';
+      infoEl.textContent = 'Объект размещён. Обойдите его — он остаётся на месте.';
       resetBtn.style.display = 'block';
     }
 
