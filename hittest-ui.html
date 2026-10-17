@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>Задание 5: Three.js + UI + HDRI</title>
+
+  <style>
+    body { margin: 0; overflow: hidden; background: #000; color: #fff; font-family: system-ui, sans-serif; }
+
+    nav {
+      position: fixed; top: 0; left: 0; right: 0;
+      display: flex; gap: 8px; padding: 10px;
+      background: rgba(20,40,28,.85); justify-content: center;
+      z-index: 100; flex-wrap: wrap;
+    }
+    nav a {
+      padding: 8px 14px; border-radius: 999px;
+      color: #eaf5ee; text-decoration: none; font-size: 14px;
+      border: 1px solid #2f5c3f;
+    }
+    nav a.active { background: #4caf50; color: #04140a; font-weight: 600; border-color: #4caf50; }
+
+    #ar-button {
+      position: fixed; bottom: 24px; left: 50%;
+      transform: translateX(-50%);
+      padding: 14px 28px; border-radius: 999px; border: none;
+      background: #4caf50; color: #04140a; font-size: 16px; font-weight: 600;
+      z-index: 100; cursor: pointer;
+    }
+
+    #info {
+      position: fixed; top: 60px; left: 50%; transform: translateX(-50%);
+      background: rgba(0,0,0,.55); padding: 8px 14px;
+      border-radius: 999px; font-size: 14px; z-index: 100;
+      text-align: center; max-width: 90vw;
+    }
+
+    /* Панель управления (видна только в AR) */
+    #controls {
+      position: fixed; bottom: 90px; left: 50%;
+      transform: translateX(-50%);
+      display: none;
+      gap: 8px; padding: 10px;
+      background: rgba(0,0,0,.75);
+      border-radius: 16px; z-index: 100;
+      flex-wrap: wrap; justify-content: center;
+      max-width: 90vw;
+    }
+    #controls button {
+      padding: 10px 16px; border-radius: 999px;
+      border: 1px solid #4caf50; background: transparent;
+      color: #fff; font-size: 14px; cursor: pointer;
+    }
+    #controls button:hover { background: #4caf50; color: #000; }
+
+    #controls.visible { display: flex; }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <a href="index.html">Задание 1</a>
+    <a href="marker.html">Задание 2</a>
+    <a href="face.html">Задание 3</a>
+    <a href="hittest.html">Задание 4</a>
+    <a href="hittest-ui.html" class="active">Задание 5: UI</a>
+  </nav>
+
+  <div id="info">📱 Наведите на поверхность, коснитесь для размещения</div>
+
+  <button id="ar-button">Запустить AR</button>
+
+  <div id="controls">
+    <button id="btn-rotate">🔄 Повернуть</button>
+    <button id="btn-model">📦 Сменить модель</button>
+    <button id="btn-reset">🗑️ Удалить</button>
+  </div>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { ARButton } from 'three/addons/webxr/ARButton.js';
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+    import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
+
+    // ============================================================
+    // КЛАСС 1: Управление объектами (растения)
+    // ============================================================
+    class ObjectManager {
+      constructor(scene) {
+        this.scene = scene;
+        this.currentObject = null;
+        this.modelIndex = 0;
+
+        // Список доступных моделей
+        this.models = [
+          { name: 'Подсолнух', url: './models/sunflower/scene.gltf', scale: 0.005 },
+          { name: 'Папоротник', url: './models/3d_fern_-_01/scene.gltf', scale: 0.05 },
+          { name: 'Кактус', url: './models/cactus/scene.gltf', scale: 0.005 }
+        ];
+
+        // Кэш загруженных моделей, чтобы не грузить каждый раз
+        this.loadedModels = {};
+      }
+
+      // Загрузить все модели заранее
+      async preloadAll() {
+        const loader = new GLTFLoader();
+        for (let i = 0; i < this.models.length; i++) {
+          const m = this.models[i];
+          try {
+            const gltf = await new Promise((res, rej) => loader.load(m.url, res, undefined, rej));
+            this.loadedModels[i] = gltf.scene;
+            console.log(`[Model] загружено: ${m.name}`);
+          } catch (e) {
+            console.error(`[Model] ошибка загрузки ${m.name}:`, e);
+          }
+        }
+      }
+
+      // Создать текущий объект в точке
+      createAt(position, quaternion) {
+        if (this.currentObject) this.scene.remove(this.currentObject);
+
+        const m = this.models[this.modelIndex];
+        const original = this.loadedModels[this.modelIndex];
+
+        if (!original) {
+          console.warn('Модель не загружена');
+          return;
+        }
+
+        const obj = original.clone();
+        obj.scale.set(m.scale, m.scale, m.scale);
+
+        // PBR — принудительно настраиваем материалы
+        obj.traverse((child) => {
+          if (child.isMesh) {
+            if (child.material) {
+              child.material.metalness = 0.1;
+              child.material.roughness = 0.7;
+            }
+          }
+        });
+
+        obj.position.copy(position);
+        obj.quaternion.copy(quaternion);
+        this.scene.add(obj);
+        this.currentObject = obj;
+      }
+
+      // Повернуть на 45°
+      rotate() {
+        if (!this.currentObject) return;
+        this.currentObject.rotation.y += Math.PI / 4;
+      }
+
+      // Сменить модель (по кругу)
+      cycleModel() {
+        if (!this.currentObject) return;
+
+        this.modelIndex = (this.modelIndex + 1) % this.models.length;
+        
+        const pos = this.currentObject.position.clone();
+        const quat = this.currentObject.quaternion.clone();
+        
+        this.createAt(pos, quat);
+        
+        // Возвращаем имя новой модели для UI
+        return this.models[this.modelIndex].name;
+      }
+
+      // Удалить
+      remove() {
+        if (this.currentObject) {
+          this.scene.remove(this.currentObject);
+          this.currentObject = null;
+        }
+      }
+    }
+
+    // ============================================================
+    // КЛАСС 2: Управление UI (панель кнопок)
+    // ============================================================
+    class UIManager {
+      constructor(objectManager, infoEl) {
+        this.obj = objectManager;
+        this.infoEl = infoEl;
+        this.panel = document.getElementById('controls');
+
+        this.bind();
+      }
+
+      bind() {
+        document.getElementById('btn-rotate').addEventListener('click', () => this.obj.rotate());
+        
+        document.getElementById('btn-model').addEventListener('click', () => {
+          const name = this.obj.cycleModel();
+          if (name) this.infoEl.textContent = `📦 Модель: ${name}`;
+        });
+
+        document.getElementById('btn-reset').addEventListener('click', () => {
+          this.obj.remove();
+          this.infoEl.textContent = '📱 Наведите на поверхность, коснитесь для размещения';
+        });
+      }
+
+      show() { this.panel.classList.add('visible'); }
+      hide() { this.panel.classList.remove('visible'); }
+    }
+
+    // ============================================================
+    // КЛАСС 3: Главный App
+    // ============================================================
+    class App {
+      constructor() {
+        this.scene = new THREE.Scene();
+        this.camera = new THREE.PerspectiveCamera(
+          70, window.innerWidth / window.innerHeight, 0.01, 20
+        );
+
+        this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        this.renderer.setPixelRatio(window.devicePixelRatio);
+        this.renderer.setSize(window.innerWidth, window.innerHeight);
+        this.renderer.xr.enabled = true;
+        document.body.appendChild(this.renderer.domElement);
+
+        this.hitTestSource = null;
+        this.hitTestSourceRequested = false;
+        this.reticle = null;
+
+        this.objectManager = new ObjectManager(this.scene);
+        this.uiManager = new UIManager(this.objectManager, document.getElementById('info'));
+
+        this.init();
+      }
+
+      async init() {
+        // Свет
+        this.scene.add(new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1.5));
+        const dir = new THREE.DirectionalLight(0xffffff, 2);
+        dir.position.set(1, 2, 1);
+        this.scene.add(dir);
+
+        // HDRI
+        try {
+          const rgbeLoader = new RGBELoader();
+          const hdrTexture = await new Promise((resolve, reject) => {
+            rgbeLoader.load('./hdr/bryanston_park_sunrise_1k.hdr',
+              (tex) => { tex.mapping = THREE.EquirectangularReflectionMapping; resolve(tex); },
+              undefined, reject
+            );
+          });
+          this.scene.environment = hdrTexture;
+          console.log('[HDRI] загружено');
+        } catch (e) {
+          console.warn('[HDRI] не загружено:', e);
+        }
+
+        // Предзагрузка моделей
+        await this.objectManager.preloadAll();
+
+        // Маркер
+        this.reticle = new THREE.Mesh(
+          new THREE.RingGeometry(0.15, 0.2, 48).rotateX(-Math.PI / 2),
+          new THREE.MeshBasicMaterial({ color: 0x4caf50, side: THREE.DoubleSide })
+        );
+        this.reticle.matrixAutoUpdate = false;
+        this.reticle.visible = false;
+        this.scene.add(this.reticle);
+
+        // AR-кнопка
+        const arButton = ARButton.createButton(this.renderer, {
+          requiredFeatures: ['hit-test'],
+          optionalFeatures: ['dom-overlay'],
+          domOverlay: { root: document.body }
+        });
+        arButton.style.display = 'none';
+        document.getElementById('ar-button').addEventListener('click', () => arButton.click());
+
+        // Слушатели сессии
+        this.renderer.xr.addEventListener('sessionstart', () => {
+          const session = this.renderer.xr.getSession();
+          session.addEventListener('select', () => this.onSelect());
+          document.getElementById('ar-button').style.display = 'none';
+          this.uiManager.show();
+        });
+
+        this.renderer.xr.addEventListener('sessionend', () => {
+          this.hitTestSource = null;
+          this.hitTestSourceRequested = false;
+          this.reticle.visible = false;
+          this.objectManager.remove();
+
+          document.getElementById('ar-button').style.display = 'block';
+          this.uiManager.hide();
+          document.getElementById('info').textContent = '📱 Наведите на поверхность, коснитесь для размещения';
+        });
+
+        window.addEventListener('resize', () => this.onResize());
+        this.renderer.setAnimationLoop((t, frame) => this.render(t, frame));
+      }
+
+      onSelect() {
+        if (!this.reticle.visible || this.objectManager.currentObject) return;
+
+        const pos = new THREE.Vector3().setFromMatrixPosition(this.reticle.matrix);
+        const quat = new THREE.Quaternion().setFromRotationMatrix(this.reticle.matrix);
+
+        this.objectManager.createAt(pos, quat);
+        this.reticle.visible = false;
+        
+        const name = this.objectManager.models[this.objectManager.modelIndex].name;
+        document.getElementById('info').textContent = `✅ Размещён: ${name}. Используйте кнопки внизу.`;
+      }
+
+      onResize() {
+        this.camera.aspect = window.innerWidth / window.innerHeight;
+        this.camera.updateProjectionMatrix();
+        this.renderer.setSize(window.innerWidth, window.innerHeight);
+      }
+
+      render(timestamp, frame) {
+        if (frame) {
+          const session = this.renderer.xr.getSession();
+          const referenceSpace = this.renderer.xr.getReferenceSpace();
+
+          if (!this.hitTestSourceRequested) {
+            session.requestReferenceSpace('viewer').then((viewerSpace) => {
+              session.requestHitTestSource({ space: viewerSpace }).then((src) => {
+                this.hitTestSource = src;
+              });
+            });
+            this.hitTestSourceRequested = true;
+          }
+
+          if (this.hitTestSource && !this.objectManager.currentObject) {
+            const results = frame.getHitTestResults(this.hitTestSource);
+            if (results.length > 0) {
+              const pose = results[0].getPose(referenceSpace);
+              this.reticle.visible = true;
+              this.reticle.matrix.fromArray(pose.transform.matrix);
+            } else {
+              this.reticle.visible = false;
+            }
+          } else {
+            this.reticle.visible = false;
+          }
+        }
+
+        this.renderer.render(this.scene, this.camera);
+      }
+    }
+
+    new App();
+  </script>
+
+</body>
+</html>
