@@ -68,14 +68,14 @@
     <a href="hittest-ui.html" class="active">Задание 5: UI</a>
   </nav>
 
-  <div id="info">📱 Наведите на поверхность, коснитесь для размещения</div>
+  <div id="info">Наведите на поверхность, коснитесь для размещения</div>
 
   <button id="ar-button">Запустить AR</button>
 
   <div id="controls">
-    <button id="btn-rotate">🔄 Повернуть</button>
-    <button id="btn-model">📦 Сменить модель</button>
-    <button id="btn-reset">🗑️ Удалить</button>
+    <button id="btn-rotate">Повернуть</button>
+    <button id="btn-model">Сменить модель</button>
+    <button id="btn-reset">Удалить</button>
   </div>
 
   <script type="importmap">
@@ -104,9 +104,9 @@
 
         // Список доступных моделей
         this.models = [
-          { name: 'Подсолнух', url: './models/sunflower/scene.gltf', scale: 0.005 },
-          { name: 'Папоротник', url: './models/3d_fern_-_01/scene.gltf', scale: 0.05 },
-          { name: 'Кактус', url: './models/cactus/scene.gltf', scale: 0.005 }
+          { name: 'Подсолнух', url: './models/sunflower/scene.gltf', scale: 0.001 },
+          { name: 'Папоротник', url: './models/3d_fern_-_01/scene.gltf', scale: 0.001 },
+          { name: 'Кактус', url: './models/cactus/scene.gltf', scale: 0.001 }
         ];
 
         // Кэш загруженных моделей, чтобы не грузить каждый раз
@@ -211,7 +211,7 @@
 
         document.getElementById('btn-reset').addEventListener('click', () => {
           this.obj.remove();
-          this.infoEl.textContent = '📱 Наведите на поверхность, коснитесь для размещения';
+          this.infoEl.textContent = 'Наведите на поверхность, коснитесь для размещения';
         });
       }
 
@@ -304,7 +304,7 @@
 
           document.getElementById('ar-button').style.display = 'block';
           this.uiManager.hide();
-          document.getElementById('info').textContent = '📱 Наведите на поверхность, коснитесь для размещения';
+          document.getElementById('info').textContent = 'Наведите на поверхность, коснитесь для размещения';
         });
 
         window.addEventListener('resize', () => this.onResize());
@@ -321,7 +321,7 @@
         this.reticle.visible = false;
         
         const name = this.objectManager.models[this.objectManager.modelIndex].name;
-        document.getElementById('info').textContent = `✅ Размещён: ${name}. Используйте кнопки внизу.`;
+        document.getElementById('info').textContent = `Размещён: ${name}. Используйте кнопки внизу.`;
       }
 
       onResize() {
