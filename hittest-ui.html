@@ -8,7 +8,6 @@
 
   <style>
     body { margin: 0; overflow: hidden; background: #000; color: #fff; font-family: system-ui, sans-serif; }
-
     nav {
       position: fixed; top: 0; left: 0; right: 0;
       display: flex; gap: 8px; padding: 10px;
@@ -29,6 +28,9 @@
       background: #4caf50; color: #04140a; font-size: 16px; font-weight: 600;
       z-index: 100; cursor: pointer;
     }
+    #ar-button:disabled {
+      background: #555; cursor: wait;
+    }
 
     #info {
       position: fixed; top: 60px; left: 50%; transform: translateX(-50%);
@@ -37,7 +39,6 @@
       text-align: center; max-width: 90vw;
     }
 
-    /* Панель управления (видна только в AR) */
     #controls {
       position: fixed; bottom: 90px; left: 50%;
       transform: translateX(-50%);
@@ -54,7 +55,6 @@
       color: #fff; font-size: 14px; cursor: pointer;
     }
     #controls button:hover { background: #4caf50; color: #000; }
-
     #controls.visible { display: flex; }
   </style>
 </head>
@@ -68,14 +68,14 @@
     <a href="hittest-ui.html" class="active">Задание 5: UI</a>
   </nav>
 
-  <div id="info">Наведите на поверхность, коснитесь для размещения</div>
+  <div id="info">Загрузка данных...</div>
 
-  <button id="ar-button">Запустить AR</button>
+  <button id="ar-button" disabled>Загрузка...</button>
 
   <div id="controls">
-    <button id="btn-rotate">Повернуть</button>
-    <button id="btn-model">Сменить модель</button>
-    <button id="btn-reset">Удалить</button>
+    <button id="btn-rotate">🔄 Повернуть</button>
+    <button id="btn-model">📦 Сменить модель</button>
+    <button id="btn-reset">🗑️ Удалить</button>
   </div>
 
   <script type="importmap">
@@ -94,7 +94,7 @@
     import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
 
     // ============================================================
-    // КЛАСС 1: Управление объектами (растения)
+    // КЛАСС 1: Управление объектами
     // ============================================================
     class ObjectManager {
       constructor(scene) {
@@ -102,18 +102,14 @@
         this.currentObject = null;
         this.modelIndex = 0;
 
-        // Список доступных моделей
         this.models = [
-          { name: 'Подсолнух', url: './models/sunflower/scene.gltf', scale: 0.001 },
-          { name: 'Папоротник', url: './models/3d_fern_-_01/scene.gltf', scale: 0.001 },
-          { name: 'Кактус', url: './models/cactus/scene.gltf', scale: 0.001 }
+          { name: 'Подсолнух',  url: './models/sunflower/scene.gltf',    scale: 0.005 },
+          { name: 'Папоротник', url: './models/3d_fern_-_01/scene.gltf', scale: 0.05  }
         ];
 
-        // Кэш загруженных моделей, чтобы не грузить каждый раз
         this.loadedModels = {};
       }
 
-      // Загрузить все модели заранее
       async preloadAll() {
         const loader = new GLTFLoader();
         for (let i = 0; i < this.models.length; i++) {
@@ -123,33 +119,25 @@
             this.loadedModels[i] = gltf.scene;
             console.log(`[Model] загружено: ${m.name}`);
           } catch (e) {
-            console.error(`[Model] ошибка загрузки ${m.name}:`, e);
+            console.error(`[Model] ошибка ${m.name}:`, e);
           }
         }
       }
 
-      // Создать текущий объект в точке
       createAt(position, quaternion) {
         if (this.currentObject) this.scene.remove(this.currentObject);
 
         const m = this.models[this.modelIndex];
         const original = this.loadedModels[this.modelIndex];
-
-        if (!original) {
-          console.warn('Модель не загружена');
-          return;
-        }
+        if (!original) { console.warn('Модель не загружена'); return; }
 
         const obj = original.clone();
         obj.scale.set(m.scale, m.scale, m.scale);
 
-        // PBR — принудительно настраиваем материалы
         obj.traverse((child) => {
-          if (child.isMesh) {
-            if (child.material) {
-              child.material.metalness = 0.1;
-              child.material.roughness = 0.7;
-            }
+          if (child.isMesh && child.material) {
+            child.material.metalness = 0.1;
+            child.material.roughness = 0.7;
           }
         });
 
@@ -159,28 +147,19 @@
         this.currentObject = obj;
       }
 
-      // Повернуть на 45°
       rotate() {
-        if (!this.currentObject) return;
-        this.currentObject.rotation.y += Math.PI / 4;
+        if (this.currentObject) this.currentObject.rotation.y += Math.PI / 4;
       }
 
-      // Сменить модель (по кругу)
       cycleModel() {
-        if (!this.currentObject) return;
-
+        if (!this.currentObject) return null;
         this.modelIndex = (this.modelIndex + 1) % this.models.length;
-        
         const pos = this.currentObject.position.clone();
         const quat = this.currentObject.quaternion.clone();
-        
         this.createAt(pos, quat);
-        
-        // Возвращаем имя новой модели для UI
         return this.models[this.modelIndex].name;
       }
 
-      // Удалить
       remove() {
         if (this.currentObject) {
           this.scene.remove(this.currentObject);
@@ -190,25 +169,22 @@
     }
 
     // ============================================================
-    // КЛАСС 2: Управление UI (панель кнопок)
+    // КЛАСС 2: UI
     // ============================================================
     class UIManager {
       constructor(objectManager, infoEl) {
         this.obj = objectManager;
         this.infoEl = infoEl;
         this.panel = document.getElementById('controls');
-
         this.bind();
       }
 
       bind() {
         document.getElementById('btn-rotate').addEventListener('click', () => this.obj.rotate());
-        
         document.getElementById('btn-model').addEventListener('click', () => {
           const name = this.obj.cycleModel();
           if (name) this.infoEl.textContent = `📦 Модель: ${name}`;
         });
-
         document.getElementById('btn-reset').addEventListener('click', () => {
           this.obj.remove();
           this.infoEl.textContent = 'Наведите на поверхность, коснитесь для размещения';
@@ -220,14 +196,12 @@
     }
 
     // ============================================================
-    // КЛАСС 3: Главный App
+    // КЛАСС 3: App
     // ============================================================
     class App {
       constructor() {
         this.scene = new THREE.Scene();
-        this.camera = new THREE.PerspectiveCamera(
-          70, window.innerWidth / window.innerHeight, 0.01, 20
-        );
+        this.camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);
 
         this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
         this.renderer.setPixelRatio(window.devicePixelRatio);
@@ -252,6 +226,74 @@
         dir.position.set(1, 2, 1);
         this.scene.add(dir);
 
+        // Маркер
+        this.reticle = new THREE.Mesh(
+          new THREE.RingGeometry(0.15, 0.2, 48).rotateX(-Math.PI / 2),
+          new THREE.MeshBasicMaterial({ color: 0x4caf50, side: THREE.DoubleSide })
+        );
+        this.reticle.matrixAutoUpdate = false;
+        this.reticle.visible = false;
+        this.scene.add(this.reticle);
+
+        // AR-кнопка — регистрируем сразу, не дожидаясь загрузки моделей
+        const arButton = ARButton.createButton(this.renderer, {
+          requiredFeatures: ['hit-test'],
+          optionalFeatures: ['dom-overlay'],
+          domOverlay: { root: document.body }
+        });
+        arButton.style.display = 'none';
+
+        const btn = document.getElementById('ar-button');
+
+        // Проверяем поддержку WebXR
+        if (navigator.xr) {
+          const supported = await navigator.xr.isSessionSupported('immersive-ar');
+          if (!supported) {
+            btn.textContent = 'AR не поддерживается';
+            btn.disabled = true;
+            document.getElementById('info').textContent = 'Ваш браузер/устройство не поддерживает WebXR AR';
+            return;
+          }
+        } else {
+          btn.textContent = 'Нет WebXR';
+          btn.disabled = true;
+          document.getElementById('info').textContent = 'WebXR недоступен. Используйте Chrome на Android';
+          return;
+        }
+
+        // Активируем кнопку сразу — модели догрузятся в фоне
+        btn.textContent = 'Запустить AR';
+        btn.disabled = false;
+        btn.addEventListener('click', () => arButton.click());
+
+        document.getElementById('info').textContent = '📱 Наведите на поверхность, коснитесь для размещения';
+
+        // HDRI + модели в фоне — не блокируют кнопку
+        this.loadAssetsInBackground();
+
+        // Слушатели сессии
+        this.renderer.xr.addEventListener('sessionstart', () => {
+          const session = this.renderer.xr.getSession();
+          session.addEventListener('select', () => this.onSelect());
+          btn.style.display = 'none';
+          this.uiManager.show();
+        });
+
+        this.renderer.xr.addEventListener('sessionend', () => {
+          this.hitTestSource = null;
+          this.hitTestSourceRequested = false;
+          this.reticle.visible = false;
+          this.objectManager.remove();
+          btn.style.display = 'block';
+          this.uiManager.hide();
+          document.getElementById('info').textContent = '📱 Наведите на поверхность, коснитесь для размещения';
+        });
+
+        window.addEventListener('resize', () => this.onResize());
+        this.renderer.setAnimationLoop((t, frame) => this.render(t, frame));
+      }
+
+      async loadAssetsInBackground() {
         // HDRI
         try {
           const rgbeLoader = new RGBELoader();
@@ -267,48 +309,8 @@
           console.warn('[HDRI] не загружено:', e);
         }
 
-        // Предзагрузка моделей
+        // Модели
         await this.objectManager.preloadAll();
-
-        // Маркер
-        this.reticle = new THREE.Mesh(
-          new THREE.RingGeometry(0.15, 0.2, 48).rotateX(-Math.PI / 2),
-          new THREE.MeshBasicMaterial({ color: 0x4caf50, side: THREE.DoubleSide })
-        );
-        this.reticle.matrixAutoUpdate = false;
-        this.reticle.visible = false;
-        this.scene.add(this.reticle);
-
-        // AR-кнопка
-        const arButton = ARButton.createButton(this.renderer, {
-          requiredFeatures: ['hit-test'],
-          optionalFeatures: ['dom-overlay'],
-          domOverlay: { root: document.body }
-        });
-        arButton.style.display = 'none';
-        document.getElementById('ar-button').addEventListener('click', () => arButton.click());
-
-        // Слушатели сессии
-        this.renderer.xr.addEventListener('sessionstart', () => {
-          const session = this.renderer.xr.getSession();
-          session.addEventListener('select', () => this.onSelect());
-          document.getElementById('ar-button').style.display = 'none';
-          this.uiManager.show();
-        });
-
-        this.renderer.xr.addEventListener('sessionend', () => {
-          this.hitTestSource = null;
-          this.hitTestSourceRequested = false;
-          this.reticle.visible = false;
-          this.objectManager.remove();
-
-          document.getElementById('ar-button').style.display = 'block';
-          this.uiManager.hide();
-          document.getElementById('info').textContent = 'Наведите на поверхность, коснитесь для размещения';
-        });
-
-        window.addEventListener('resize', () => this.onResize());
-        this.renderer.setAnimationLoop((t, frame) => this.render(t, frame));
       }
 
       onSelect() {
@@ -319,9 +321,9 @@
 
         this.objectManager.createAt(pos, quat);
         this.reticle.visible = false;
-        
+
         const name = this.objectManager.models[this.objectManager.modelIndex].name;
-        document.getElementById('info').textContent = `Размещён: ${name}. Используйте кнопки внизу.`;
+        document.getElementById('info').textContent = `✅ Размещён: ${name}. Используйте кнопки внизу.`;
       }
 
       onResize() {
