@@ -73,9 +73,9 @@
   <button id="ar-button" disabled>Загрузка...</button>
 
   <div id="controls">
-    <button id="btn-rotate">🔄 Повернуть</button>
-    <button id="btn-model">📦 Сменить модель</button>
-    <button id="btn-reset">🗑️ Удалить</button>
+    <button id="btn-rotate">Повернуть</button>
+    <button id="btn-model">Сменить модель</button>
+    <button id="btn-reset">Удалить</button>
   </div>
 
   <script type="importmap">
@@ -183,7 +183,7 @@
         document.getElementById('btn-rotate').addEventListener('click', () => this.obj.rotate());
         document.getElementById('btn-model').addEventListener('click', () => {
           const name = this.obj.cycleModel();
-          if (name) this.infoEl.textContent = `📦 Модель: ${name}`;
+          if (name) this.infoEl.textContent = `Модель: ${name}`;
         });
         document.getElementById('btn-reset').addEventListener('click', () => {
           this.obj.remove();
@@ -323,7 +323,7 @@
         this.reticle.visible = false;
 
         const name = this.objectManager.models[this.objectManager.modelIndex].name;
-        document.getElementById('info').textContent = `✅ Размещён: ${name}. Используйте кнопки внизу.`;
+        document.getElementById('info').textContent = `Размещён: ${name}. Используйте кнопки внизу.`;
       }
 
       onResize() {
